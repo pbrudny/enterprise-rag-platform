@@ -32,7 +32,11 @@ services:
       PERSIST_DIRECTORY: "/data"
 
   envoy:
-    image: bitnami/envoy:latest
+    # bitnami/envoy has no published tags at all anymore (Bitnami retired
+    # free-tier latest tags) — using the official image instead. v1.38.3
+    # (not a -distroless/-debug variant) so /bin/sh exists for the
+    # substitution entrypoint below.
+    image: envoyproxy/envoy:v1.38.3
     restart: unless-stopped
     depends_on:
       - chromadb
@@ -43,7 +47,7 @@ services:
       CHROMA_AUTH_TOKEN_TRANSPORT_HEADER: "Authorization"
     configs:
       - source: envoy_yaml
-        target: /opt/bitnami/envoy/conf/envoy.yaml
+        target: /etc/envoy/envoy.yaml
       - source: entrypoint_sh
         target: /entrypoint.sh
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
@@ -116,7 +120,7 @@ configs:
     content: |
       #!/bin/sh
 
-      sed 's/%CHROMA_AUTH_TOKEN_TRANSPORT_HEADER%/'$$CHROMA_AUTH_TOKEN_TRANSPORT_HEADER'/g' /opt/bitnami/envoy/conf/envoy.yaml > /tmp/envoy_temp.yaml
+      sed 's/%CHROMA_AUTH_TOKEN_TRANSPORT_HEADER%/'$$CHROMA_AUTH_TOKEN_TRANSPORT_HEADER'/g' /etc/envoy/envoy.yaml > /tmp/envoy_temp.yaml
 
       if [ "$$CHROMA_AUTH_TOKEN_TRANSPORT_HEADER" = "Authorization" ]; then
         sed -i 's/%CHROMA_SERVER_AUTHN_CREDENTIALS%/Bearer '$$CHROMA_SERVER_AUTHN_CREDENTIALS'/g' /tmp/envoy_temp.yaml
@@ -124,7 +128,7 @@ configs:
         sed -i 's/%CHROMA_SERVER_AUTHN_CREDENTIALS%/'$$CHROMA_SERVER_AUTHN_CREDENTIALS'/g' /tmp/envoy_temp.yaml
       fi
 
-      /opt/bitnami/envoy/bin/envoy -c /tmp/envoy_temp.yaml
+      envoy -c /tmp/envoy_temp.yaml
 
 volumes:
   chroma-data:
