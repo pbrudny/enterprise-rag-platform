@@ -1,0 +1,63 @@
+# Mock tenant/user directory — stands in for a real SSO/IdP integration.
+tenants:
+  - tenant_id: acme-corp
+    name: Acme Corp
+    region: eu
+  - tenant_id: globex-inc
+    name: Globex Inc
+    region: us
+  - tenant_id: initech
+    name: Initech
+    region: apac
+
+users:
+  - user_id: acme-employee
+    tenant_id: acme-corp
+    display_name: Alice Employee
+    role: employee
+    clearance: INTERNAL
+    acl_groups: [engineering]
+  - user_id: acme-manager
+    tenant_id: acme-corp
+    display_name: Morgan Manager
+    role: manager
+    clearance: CONFIDENTIAL
+    acl_groups: [engineering, finance]
+  - user_id: acme-exec
+    tenant_id: acme-corp
+    display_name: Erin Exec
+    role: security_admin
+    clearance: RESTRICTED
+    acl_groups: [exec]
+
+  - user_id: globex-employee
+    tenant_id: globex-inc
+    display_name: Gabe Employee
+    role: employee
+    clearance: INTERNAL
+    acl_groups: [clinical]
+  - user_id: globex-manager
+    tenant_id: globex-inc
+    display_name: Gina Manager
+    role: manager
+    clearance: CONFIDENTIAL
+    acl_groups: [clinical, hr]
+  - user_id: globex-exec
+    tenant_id: globex-inc
+    display_name: Greg Exec
+    role: security_admin
+    clearance: RESTRICTED
+    acl_groups: [exec]
+
+  - user_id: initech-employee
+    tenant_id: initech
+    display_name: Ivy Employee
+    role: employee
+    clearance: INTERNAL
+    acl_groups: [engineering]
+  - user_id: initech-manager
+    tenant_id: initech
+    display_name: Ivan Manager
+    role: manager
+    clearance: RESTRICTED
+    acl_groups: [engineering, exec]

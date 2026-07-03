@@ -1,0 +1,50 @@
+# Single source of truth for which mock document belongs to which tenant with
+# what ACL group / classification. Used by both `rag seed-demo` and the test
+# fixtures, so the two never drift apart.
+#
+# vendor-notice-injection.md (Phase 3) is intentionally NOT listed here as a
+# normal entry — it is ingested separately to exercise quarantine.
+- tenant_id: acme-corp
+  filename: employee-handbook.md
+  acl_group: all
+  classification: PUBLIC
+- tenant_id: acme-corp
+  filename: vpn-password-policy.md
+  acl_group: all
+  classification: INTERNAL
+- tenant_id: acme-corp
+  filename: q3-financial-results-draft.md
+  acl_group: finance
+  classification: CONFIDENTIAL
+- tenant_id: acme-corp
+  filename: 2026-reorg-plan.md
+  acl_group: exec
+  classification: RESTRICTED
+- tenant_id: globex-inc
+  filename: employee-handbook.md
+  acl_group: all
+  classification: PUBLIC
+- tenant_id: globex-inc
+  filename: patient-data-handling-policy.md
+  acl_group: all
+  classification: INTERNAL
+- tenant_id: globex-inc
+  filename: clinical-trial-results-confidential.md
+  acl_group: clinical
+  classification: CONFIDENTIAL
+- tenant_id: globex-inc
+  filename: executive-merger-plan.md
+  acl_group: exec
+  classification: RESTRICTED
+- tenant_id: initech
+  filename: employee-handbook.md
+  acl_group: all
+  classification: PUBLIC
+- tenant_id: initech
+  filename: vpn-remote-access-policy.md
+  acl_group: all
+  classification: INTERNAL
+- tenant_id: initech
+  filename: org-restructuring-plan-confidential.md
+  acl_group: exec
+  classification: RESTRICTED

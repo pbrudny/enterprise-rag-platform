@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/chroma/
+data/quarantine/
+data/raw_store/
+data/audit.jsonl
+data/app.jsonl
+.env
