@@ -2,22 +2,124 @@
 # Client (see ../../pyproject.toml) is pinned to chromadb==1.5.9 — this image
 # tag is chosen to match, to avoid client/server protocol drift.
 #
+# IMPORTANT: chromadb removed its built-in CHROMA_SERVER_AUTHN_* server-side
+# auth in the 1.x line (the Rust-based server no longer implements it — the
+# env vars are silently ignored, which is exactly what happened on first
+# deploy here: the server ran with zero access control despite being
+# configured). The current documented pattern (cookbook.chromadb.dev/
+# security/auth-1.0.x/) is an Envoy sidecar in front of Chroma that validates
+# a static bearer token via RBAC before proxying to the (internal-only,
+# unpublished) chromadb container. Only Envoy's port is exposed externally.
+#
 # CHROMA_AUTH_TOKEN is supplied by Coolify's own per-application environment
 # variable store, never a literal value here (this repo is public).
+#
+# Exposed on a Mikrus-forwarded port (30107) rather than routed through
+# Traefik/Cloudflare — this VPS's Cloudflare Tunnel ingress only covers the
+# bare domain + www for the existing personal-site, and editing that shared
+# config for one more subdomain was judged higher-risk than this project
+# needs. Consequence: no TLS on this connection (the Envoy-checked auth
+# token still gates access, but travels unencrypted) — acceptable for this
+# project's mock/practice data, not for anything sensitive.
 services:
-  chroma:
+  chromadb:
     image: chromadb/chroma:1.5.9
     restart: unless-stopped
-    ports:
-      - "8000:8000"
     volumes:
       - chroma-data:/data
     environment:
       IS_PERSISTENT: "TRUE"
       PERSIST_DIRECTORY: "/data"
-      CHROMA_SERVER_AUTHN_PROVIDER: "chromadb.auth.token_authn.TokenAuthenticationServerProvider"
+
+  envoy:
+    image: bitnami/envoy:latest
+    restart: unless-stopped
+    depends_on:
+      - chromadb
+    ports:
+      - "30107:8000"
+    environment:
       CHROMA_SERVER_AUTHN_CREDENTIALS: "${CHROMA_AUTH_TOKEN}"
-      CHROMA_AUTH_TOKEN_TRANSPORT_HEADER: "AUTHORIZATION"
+      CHROMA_AUTH_TOKEN_TRANSPORT_HEADER: "Authorization"
+    configs:
+      - source: envoy_yaml
+        target: /opt/bitnami/envoy/conf/envoy.yaml
+      - source: entrypoint_sh
+        target: /entrypoint.sh
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+
+configs:
+  envoy_yaml:
+    content: |
+      static_resources:
+        listeners:
+          - name: listener_0
+            address:
+              socket_address:
+                address: 0.0.0.0
+                port_value: 8000
+            filter_chains:
+              - filters:
+                  - name: envoy.filters.network.http_connection_manager
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                      stat_prefix: ingress_http
+                      route_config:
+                        name: chroma_route
+                        virtual_hosts:
+                          - name: local_chromadb
+                            domains: [ "*" ]
+                            routes:
+                              - match:
+                                  prefix: "/"
+                                route:
+                                  cluster: chromadb_service
+                                  prefix_rewrite: "/"
+                      http_filters:
+                        - name: envoy.filters.http.rbac
+                          typed_config:
+                            "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+                            rules:
+                              action: ALLOW
+                              policies:
+                                "static-token-policy":
+                                  permissions:
+                                    - header:
+                                        name: "%CHROMA_AUTH_TOKEN_TRANSPORT_HEADER%"
+                                        string_match:
+                                          exact: "%CHROMA_SERVER_AUTHN_CREDENTIALS%"
+                                  principals:
+                                    - any: true
+                        - name: envoy.filters.http.router
+                          typed_config:
+                            "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+        clusters:
+          - name: chromadb_service
+            connect_timeout: 0.25s
+            type: LOGICAL_DNS
+            lb_policy: ROUND_ROBIN
+            load_assignment:
+              cluster_name: chromadb_service
+              endpoints:
+                - lb_endpoints:
+                    - endpoint:
+                        address:
+                          socket_address:
+                            address: chromadb
+                            port_value: 8000
+  entrypoint_sh:
+    content: |
+      #!/bin/sh
+
+      sed 's/%CHROMA_AUTH_TOKEN_TRANSPORT_HEADER%/'$CHROMA_AUTH_TOKEN_TRANSPORT_HEADER'/g' /opt/bitnami/envoy/conf/envoy.yaml > /tmp/envoy_temp.yaml
+
+      if [ "$CHROMA_AUTH_TOKEN_TRANSPORT_HEADER" = "Authorization" ]; then
+        sed -i 's/%CHROMA_SERVER_AUTHN_CREDENTIALS%/Bearer '$CHROMA_SERVER_AUTHN_CREDENTIALS'/g' /tmp/envoy_temp.yaml
+      else
+        sed -i 's/%CHROMA_SERVER_AUTHN_CREDENTIALS%/'$CHROMA_SERVER_AUTHN_CREDENTIALS'/g' /tmp/envoy_temp.yaml
+      fi
+
+      /opt/bitnami/envoy/bin/envoy -c /tmp/envoy_temp.yaml
 
 volumes:
   chroma-data:
