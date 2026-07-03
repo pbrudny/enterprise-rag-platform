@@ -108,15 +108,20 @@ configs:
                             address: chromadb
                             port_value: 8000
   entrypoint_sh:
+    # $$ (not $) throughout: Compose's own variable interpolation scans this
+    # raw file content for $VAR/${VAR} BEFORE it ever reaches the container,
+    # and silently blanks out anything it doesn't recognize as a top-level
+    # compose variable — a single $ here gets stripped, not passed through
+    # to the shell at runtime. $$ is Compose's escape for a literal $.
     content: |
       #!/bin/sh
 
-      sed 's/%CHROMA_AUTH_TOKEN_TRANSPORT_HEADER%/'$CHROMA_AUTH_TOKEN_TRANSPORT_HEADER'/g' /opt/bitnami/envoy/conf/envoy.yaml > /tmp/envoy_temp.yaml
+      sed 's/%CHROMA_AUTH_TOKEN_TRANSPORT_HEADER%/'$$CHROMA_AUTH_TOKEN_TRANSPORT_HEADER'/g' /opt/bitnami/envoy/conf/envoy.yaml > /tmp/envoy_temp.yaml
 
-      if [ "$CHROMA_AUTH_TOKEN_TRANSPORT_HEADER" = "Authorization" ]; then
-        sed -i 's/%CHROMA_SERVER_AUTHN_CREDENTIALS%/Bearer '$CHROMA_SERVER_AUTHN_CREDENTIALS'/g' /tmp/envoy_temp.yaml
+      if [ "$$CHROMA_AUTH_TOKEN_TRANSPORT_HEADER" = "Authorization" ]; then
+        sed -i 's/%CHROMA_SERVER_AUTHN_CREDENTIALS%/Bearer '$$CHROMA_SERVER_AUTHN_CREDENTIALS'/g' /tmp/envoy_temp.yaml
       else
-        sed -i 's/%CHROMA_SERVER_AUTHN_CREDENTIALS%/'$CHROMA_SERVER_AUTHN_CREDENTIALS'/g' /tmp/envoy_temp.yaml
+        sed -i 's/%CHROMA_SERVER_AUTHN_CREDENTIALS%/'$$CHROMA_SERVER_AUTHN_CREDENTIALS'/g' /tmp/envoy_temp.yaml
       fi
 
       /opt/bitnami/envoy/bin/envoy -c /tmp/envoy_temp.yaml
