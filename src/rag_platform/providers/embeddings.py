@@ -1,13 +1,9 @@
 """Embedding provider abstraction.
 
-LocalEmbeddingProvider (sentence-transformers) is the default: it needs no
-API key or billing, which matters because both the OpenAI and Anthropic keys
-available in this environment turned out to have no usable quota/credits.
-OpenAIEmbeddingProvider is kept as a real, switchable alternative (and as the
-closer stand-in for Vertex AI Embeddings) for whenever billing is sorted out.
-Swapping to real Vertex AI later means implementing VertexAIEmbeddingProvider
-below and adding a branch in bootstrap.py — nothing else in the codebase
-depends on which provider is active.
+LocalEmbeddingProvider (sentence-transformers) needs no API key or billing.
+OpenAIEmbeddingProvider and VertexAIEmbeddingProvider are real, switchable
+alternatives. Nothing else in the codebase depends on which provider is
+active — only bootstrap.py's factory function branches on config.
 """
 
 from abc import ABC, abstractmethod
@@ -60,16 +56,40 @@ class LocalEmbeddingProvider(EmbeddingProvider):
 
 
 class VertexAIEmbeddingProvider(EmbeddingProvider):
-    """Not implemented — no GCP/Vertex AI credentials available in this environment.
+    """Real Vertex AI Embeddings, via the unified google-genai SDK
+    (`genai.Client(vertexai=True, ...)`). Auth is Application Default
+    Credentials (`gcloud auth application-default login`) — picked up
+    automatically, no key file or explicit credentials object needed.
 
-    Real implementation: `vertexai.language_models.TextEmbeddingModel.from_pretrained(
-    "text-embedding-005")`, called region-pinned via `vertexai.init(project=..., location=
-    tenant.region)`, batching `.get_embeddings(texts)` for `embed_documents` and a
-    single-item call for `embed_query`.
+    Uses distinct task_type per call (RETRIEVAL_DOCUMENT vs RETRIEVAL_QUERY)
+    to bias the embedding space for asymmetric search — a real improvement
+    over the local/OpenAI providers, which don't distinguish the two.
     """
 
+    def __init__(self, project: str, location: str, model_name: str) -> None:
+        from google import genai
+
+        self._client = genai.Client(vertexai=True, project=project, location=location)
+        self._model_name = model_name
+
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        raise NotImplementedError("Vertex AI requires GCP credentials not available here")
+        if not texts:
+            return []
+        from google.genai.types import EmbedContentConfig
+
+        response = self._client.models.embed_content(
+            model=self._model_name,
+            contents=texts,
+            config=EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT"),
+        )
+        return [e.values for e in response.embeddings]
 
     def embed_query(self, text: str) -> list[float]:
-        raise NotImplementedError("Vertex AI requires GCP credentials not available here")
+        from google.genai.types import EmbedContentConfig
+
+        response = self._client.models.embed_content(
+            model=self._model_name,
+            contents=[text],
+            config=EmbedContentConfig(task_type="RETRIEVAL_QUERY"),
+        )
+        return response.embeddings[0].values

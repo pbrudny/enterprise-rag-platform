@@ -1,0 +1,23 @@
+# Chroma server for the rag-platform project, deployed via Coolify.
+# Client (see ../../pyproject.toml) is pinned to chromadb==1.5.9 — this image
+# tag is chosen to match, to avoid client/server protocol drift.
+#
+# CHROMA_AUTH_TOKEN is supplied by Coolify's own per-application environment
+# variable store, never a literal value here (this repo is public).
+services:
+  chroma:
+    image: chromadb/chroma:1.5.9
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/data
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: "/data"
+      CHROMA_SERVER_AUTHN_PROVIDER: "chromadb.auth.token_authn.TokenAuthenticationServerProvider"
+      CHROMA_SERVER_AUTHN_CREDENTIALS: "${CHROMA_AUTH_TOKEN}"
+      CHROMA_AUTH_TOKEN_TRANSPORT_HEADER: "AUTHORIZATION"
+
+volumes:
+  chroma-data:

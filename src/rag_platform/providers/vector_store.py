@@ -31,11 +31,32 @@ class VectorStore(ABC):
 
 
 class ChromaVectorStore(VectorStore):
-    def __init__(self, persist_dir: Path, collection_name: str = "chunks") -> None:
+    """Two modes: `local` (embedded `PersistentClient`, data on this machine's
+    disk) and `remote` (`HttpClient` against a Chroma server, e.g. the one
+    deployed to the Mikrus VPS via Coolify — see deploy/chroma/). Everything
+    below `__init__` operates only on `self._collection`, so it's identical
+    either way.
+    """
+
+    def __init__(
+        self,
+        persist_dir: Path | None = None,
+        collection_name: str = "chunks",
+        mode: str = "local",
+        host: str | None = None,
+        port: int = 443,
+        ssl: bool = True,
+        auth_token: str = "",
+    ) -> None:
         import chromadb
 
-        persist_dir.mkdir(parents=True, exist_ok=True)
-        self._client = chromadb.PersistentClient(path=str(persist_dir))
+        if mode == "remote":
+            headers = {"Authorization": f"Bearer {auth_token}"} if auth_token else None
+            self._client = chromadb.HttpClient(host=host, port=port, ssl=ssl, headers=headers)
+        else:
+            assert persist_dir is not None, "persist_dir is required when mode='local'"
+            persist_dir.mkdir(parents=True, exist_ok=True)
+            self._client = chromadb.PersistentClient(path=str(persist_dir))
         self._collection = self._client.get_or_create_collection(collection_name)
 
     def add(self, chunks: list[Chunk], embeddings: list[list[float]]) -> None:

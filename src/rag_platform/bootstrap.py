@@ -11,14 +11,26 @@ from rag_platform.providers.embeddings import (
     EmbeddingProvider,
     LocalEmbeddingProvider,
     OpenAIEmbeddingProvider,
+    VertexAIEmbeddingProvider,
 )
-from rag_platform.providers.llm import AnthropicLLMProvider, LLMProvider, OpenAILLMProvider
+from rag_platform.providers.llm import (
+    AnthropicLLMProvider,
+    LLMProvider,
+    OpenAILLMProvider,
+    VertexAIGeminiProvider,
+)
 from rag_platform.providers.vector_store import ChromaVectorStore, VectorStore
 from rag_platform.retrieval.retriever import Retriever
 from rag_platform.security.audit_log import AuditLogger
 
 
 def build_embedding_provider(settings: Settings) -> EmbeddingProvider:
+    if settings.embedding_provider == "vertex":
+        return VertexAIEmbeddingProvider(
+            project=settings.gcp_project_id,
+            location=settings.gcp_location,
+            model_name=settings.vertex_embedding_model,
+        )
     if settings.embedding_provider == "openai":
         return OpenAIEmbeddingProvider(
             api_key=settings.openai_api_key, model=settings.embedding_model
@@ -27,6 +39,12 @@ def build_embedding_provider(settings: Settings) -> EmbeddingProvider:
 
 
 def build_llm_provider(settings: Settings) -> LLMProvider:
+    if settings.llm_provider == "vertex":
+        return VertexAIGeminiProvider(
+            project=settings.gcp_project_id,
+            location=settings.gcp_location,
+            model_name=settings.vertex_gemini_model,
+        )
     if settings.llm_provider == "anthropic":
         return AnthropicLLMProvider(
             api_key=settings.anthropic_api_key, model=settings.anthropic_model
@@ -35,6 +53,14 @@ def build_llm_provider(settings: Settings) -> LLMProvider:
 
 
 def build_vector_store(settings: Settings) -> VectorStore:
+    if settings.chroma_mode == "remote":
+        return ChromaVectorStore(
+            mode="remote",
+            host=settings.chroma_host,
+            port=settings.chroma_port,
+            ssl=settings.chroma_ssl,
+            auth_token=settings.chroma_auth_token,
+        )
     return ChromaVectorStore(persist_dir=settings.chroma_dir)
 
 

@@ -1,12 +1,13 @@
 [project]
 name = "rag-platform"
 version = "0.1.0"
-description = "Practice implementation of a multi-tenant, security-first RAG platform (mock data, local providers standing in for Vertex AI)"
+description = "Practice implementation of a multi-tenant, security-first RAG platform (mock data, pluggable local/OpenAI/Anthropic/Vertex AI providers)"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "anthropic>=0.40.0",
     "chromadb>=0.5.20",
+    "google-genai>=1.0.0",
     "openai>=2.30.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
@@ -46,5 +47,5 @@ known-first-party = ["rag_platform"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 markers = [
-    "integration: tests that call real OpenAI/Anthropic APIs (opt-in, env-gated)",
+    "integration: tests that call real OpenAI/Anthropic/Vertex AI APIs (opt-in, env-gated)",
 ]

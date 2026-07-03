@@ -18,12 +18,28 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     anthropic_api_key: str = ""
 
-    embedding_provider: str = "local"  # "local" or "openai"
+    embedding_provider: str = "local"  # "local", "openai", or "vertex"
     embedding_model: str = "text-embedding-3-small"
     local_embedding_model: str = "all-MiniLM-L6-v2"
-    llm_provider: str = "openai"  # "openai" or "anthropic"
+    llm_provider: str = "openai"  # "openai", "anthropic", or "vertex"
     openai_model: str = "gpt-4o-mini"
     anthropic_model: str = "claude-haiku-4-5-20251001"
+
+    # Vertex AI, via the unified google-genai SDK (genai.Client(vertexai=True, ...)).
+    # Auth is Application Default Credentials (`gcloud auth application-default
+    # login`) — no key file, nothing read from these settings for credentials.
+    gcp_project_id: str = ""
+    gcp_location: str = "europe-west4"
+    vertex_embedding_model: str = "text-embedding-005"
+    vertex_gemini_model: str = "gemini-2.5-flash"
+
+    # Chroma: "local" (embedded PersistentClient) or "remote" (HttpClient
+    # against a server, e.g. the one deployed to the Mikrus VPS via Coolify).
+    chroma_mode: str = "local"
+    chroma_host: str = ""
+    chroma_port: int = 443
+    chroma_ssl: bool = True
+    chroma_auth_token: str = ""
 
     data_dir: Path = _PROJECT_ROOT / "data"
     chroma_dir: Path = _PROJECT_ROOT / "data" / "chroma"

@@ -8,3 +8,4 @@ data/raw_store/
 data/audit.jsonl
 data/app.jsonl
 .env
+.claude/
