@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.claude/
+
+data/chroma/
+data/quarantine/
+data/raw_store/
+data/audit.jsonl
+data/app.jsonl
+
+frontend/node_modules/
+frontend/dist/
+frontend/tests/
+frontend/.env.local

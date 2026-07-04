@@ -53,5 +53,10 @@ class Settings(BaseSettings):
 
     retrieval_top_k: int = 5
 
+    # HTTP Basic Auth gate for the API/frontend (src/rag_platform/api/auth.py).
+    # Empty (the default, i.e. local dev) disables the gate entirely.
+    basic_auth_user: str = ""
+    basic_auth_password: str = ""
+
 
 settings = Settings()
