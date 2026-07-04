@@ -9,6 +9,9 @@ Providers are pluggable (`src/rag_platform/providers/`): local `sentence-transfo
 ```bash
 cd enterprise-rag-platform
 uv sync
+# add `--extra local-embeddings` only if you want EMBEDDING_PROVIDER=local
+# (sentence-transformers, which pulls in torch — sizable, not needed for
+# openai/anthropic/vertex, and left out of the default install/Docker image)
 
 uv run rag version
 uv run rag seed-demo              # ingest all mock tenants' documents
@@ -22,7 +25,9 @@ uv run rag audit tail -n 20
 
 A FastAPI backend (`src/rag_platform/api/`) exposes the same core service layer over HTTP, and a React/TypeScript frontend (`frontend/`) provides a browser UI for the same flows as `rag demo`: pick a mock user, ask questions, see the access context/filter/retrieved chunks/injection scan/output validation/citations, and view the audit log.
 
-**v1 scope, deliberately**: mock user picker (no real auth, matches the PRD's SSO scope-cut), ask/query screen, audit log viewer. Document ingestion stays CLI-only (`rag ingest`/`seed-demo`) — it needs admin ACL/classification decisions that are secondary to this build's retrieval/security story. Deployment stays local-only for now.
+**v1 scope, deliberately**: mock user picker (no real auth, plus an HTTP Basic Auth gate in front of the deployed instance specifically — see `src/rag_platform/api/auth.py` — since it triggers real billed LLM calls), ask/query screen, audit log viewer. Document ingestion stays CLI-only (`rag ingest`/`seed-demo`) — it needs admin ACL/classification decisions that are secondary to this build's retrieval/security story.
+
+The backend also serves the built frontend as static files (same process, same-origin, no CORS) when `frontend/dist/` exists — see the `Dockerfile` at the repo root for the deployed build.
 
 Run both sides (two terminals):
 
