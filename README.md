@@ -1,10 +1,10 @@
 # rag-platform (practice build)
 
-A runnable, local practice implementation of the multi-tenant secure RAG platform described in `prd.md`. 
+A runnable, local practice implementation of the multi-tenant secure RAG platform described in `prd.md`. Built for hands-on interview prep, not production use — see `CLAUDE.md` for the architecture invariants this build preserves and `prd.md` for the full target design.
 
-No GCP account is required: OpenAI is used for embeddings/generation as a stand-in for Vertex AI Embeddings/Gemini, and a local ChromaDB index stands in for Vertex AI Vector Search. Both are behind provider interfaces (`src/rag_platform/providers/`) so a real Vertex AI swap-in is a matter of implementing one more class per interface.
+Providers are pluggable (`src/rag_platform/providers/`): local `sentence-transformers` / OpenAI / Anthropic / **real Vertex AI** for embeddings and generation, and a local embedded Chroma or a **remote Chroma server** for the vector store — selected via `~/agenty/secrets/.env` (`EMBEDDING_PROVIDER`, `LLM_PROVIDER`, `CHROMA_MODE`). Nothing is hardcoded to one backend.
 
-## Install & run
+## Install & run (CLI)
 
 ```bash
 cd enterprise-rag-platform
@@ -18,9 +18,36 @@ uv run rag demo --scenario injection
 uv run rag audit tail -n 20
 ```
 
+## Web UI
+
+A FastAPI backend (`src/rag_platform/api/`) exposes the same core service layer over HTTP, and a React/TypeScript frontend (`frontend/`) provides a browser UI for the same flows as `rag demo`: pick a mock user, ask questions, see the access context/filter/retrieved chunks/injection scan/output validation/citations, and view the audit log.
+
+**v1 scope, deliberately**: mock user picker (no real auth, matches the PRD's SSO scope-cut), ask/query screen, audit log viewer. Document ingestion stays CLI-only (`rag ingest`/`seed-demo`) — it needs admin ACL/classification decisions that are secondary to this build's retrieval/security story. Deployment stays local-only for now.
+
+Run both sides (two terminals):
+
+```bash
+# Terminal 1 — backend, http://127.0.0.1:8000
+uv run rag serve
+# or, for hot-reload while actively developing the backend:
+uv run uvicorn rag_platform.api.app:app --reload
+
+# Terminal 2 — frontend, http://localhost:5173
+cd frontend
+npm install
+cp .env.example .env.local   # first time only
+npm run dev
+```
+
+Note: `.env.local` points the frontend at `http://127.0.0.1:8000`, not `http://localhost:8000` — on machines where something else (e.g. a Docker container) also listens on port 8000 via IPv6, "localhost" can resolve ambiguously and hit the wrong service. Using the explicit loopback IP sidesteps that.
+
 ## Tests
 
 ```bash
 uv run pytest              # fast, offline, uses fake embedding/LLM providers
-uv run pytest -m integration --run-integration   # opt-in, hits real OpenAI/Anthropic
+uv run pytest -m integration --run-integration   # opt-in, hits real OpenAI/Anthropic/Vertex AI
+
+cd frontend && npm run test   # Vitest + Testing Library
 ```
+
+Reads `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GCP_PROJECT_ID` / `CHROMA_*` from `~/agenty/secrets/.env`.

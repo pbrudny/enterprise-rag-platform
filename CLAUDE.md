@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Spec only — no implementation exists yet. The only file in this directory is `prd.md`, a full product/architecture requirements document. There is no code to build, lint, or test.
+A working practice implementation exists, per README.md: a Python core library (`src/rag_platform/`) exposed both as a CLI (`rag ...`) and an HTTP API (`src/rag_platform/api/`, FastAPI), plus a React/TypeScript web frontend (`frontend/`). Providers are pluggable — local/OpenAI/Anthropic/**real Vertex AI** for embeddings+generation, local or **remote Chroma** for the vector store — selected via `~/agenty/secrets/.env`. This is still a practice/interview-prep build, not a production deployment of the PRD below; see README.md for how to run the CLI, API, and frontend, and the scope-cuts noted there (no real SSO, CLI-only ingestion, local-only deployment for the web UI).
 
-Before writing any code here, read `prd.md` in full — it is long (~1900 lines) and defines requirements at a level of detail (specific mitigations, latency budgets, IAM rules) that should not be re-derived or guessed at.
+`prd.md` remains the full target design (~1900 lines) this build is a scoped-down practice version of — read it in full before implementing new pieces, since it defines requirements at a level of detail (specific mitigations, latency budgets, IAM rules) that should not be re-derived or guessed at.
 
 ## What this project is
 

@@ -13,8 +13,10 @@ from pathlib import Path
 
 import pytest
 import yaml
+from fastapi.testclient import TestClient
 
 from rag_platform.config import settings as real_settings
+from rag_platform.generation.answer_service import AnswerService
 from rag_platform.ingestion.pipeline import IngestionPipeline
 from rag_platform.models.enums import Classification
 from rag_platform.models.query import AnswerPayload
@@ -22,6 +24,7 @@ from rag_platform.providers.embeddings import EmbeddingProvider
 from rag_platform.providers.llm import LLMProvider
 from rag_platform.providers.vector_store import ChromaVectorStore
 from rag_platform.retrieval.retriever import Retriever
+from rag_platform.security.audit_log import AuditLogger
 from rag_platform.tenancy.registry import TenantRegistry
 
 
@@ -121,3 +124,32 @@ def seeded_store(tmp_path: Path) -> ChromaVectorStore:
 @pytest.fixture
 def seeded_retriever(seeded_store: ChromaVectorStore) -> Retriever:
     return Retriever(embedding_provider=FakeEmbeddingProvider(), vector_store=seeded_store)
+
+
+@pytest.fixture
+def api_client(seeded_store: ChromaVectorStore, tenant_registry: TenantRegistry, tmp_path: Path):
+    """TestClient wired to fakes via dependency overrides, so API tests hit
+    the real HTTP boundary without touching real embedding/LLM APIs."""
+    from rag_platform.api import deps
+    from rag_platform.api.app import app
+
+    audit_logger = AuditLogger(audit_log_file=tmp_path / "api_audit.jsonl")
+    retriever = Retriever(
+        embedding_provider=FakeEmbeddingProvider(),
+        vector_store=seeded_store,
+        audit_logger=audit_logger,
+    )
+    answer_service = AnswerService(
+        retriever=retriever,
+        llm=FakeLLMProvider(answer="fake answer", citations=["acme-corp:vpn-password-policy::0"]),
+        audit_logger=audit_logger,
+    )
+
+    app.dependency_overrides[deps.get_answer_service] = lambda: answer_service
+    app.dependency_overrides[deps.get_tenant_registry] = lambda: tenant_registry
+    app.dependency_overrides[deps.get_audit_logger] = lambda: audit_logger
+
+    with TestClient(app) as client:
+        yield client
+
+    app.dependency_overrides.clear()

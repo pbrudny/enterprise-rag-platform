@@ -234,5 +234,20 @@ def audit_tail(n: int = typer.Option(20, "-n", "--lines")) -> None:
     console.print(table)
 
 
+@app.command()
+def serve(
+    host: str = typer.Option("127.0.0.1", "--host"),
+    port: int = typer.Option(8000, "--port"),
+    reload: bool = typer.Option(False, "--reload", help="Autoreload on code changes (dev only)"),
+) -> None:
+    """Run the HTTP API (for the web frontend). For active backend
+    development, prefer running uvicorn directly instead:
+    uv run uvicorn rag_platform.api.app:app --reload
+    """
+    import uvicorn
+
+    uvicorn.run("rag_platform.api.app:app", host=host, port=port, reload=reload)
+
+
 if __name__ == "__main__":
     app()
