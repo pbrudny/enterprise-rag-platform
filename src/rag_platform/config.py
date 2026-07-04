@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     chroma_port: int = 443
     chroma_ssl: bool = True
     chroma_auth_token: str = ""
+    # A Chroma collection is fixed-dimension once seeded — different
+    # embedding providers (different dims, e.g. Vertex's 768 vs OpenAI's
+    # 1536) can't share one collection even on the same server. Give each
+    # embedding provider its own collection name if they'll share a server.
+    chroma_collection_name: str = "chunks"
 
     data_dir: Path = _PROJECT_ROOT / "data"
     chroma_dir: Path = _PROJECT_ROOT / "data" / "chroma"

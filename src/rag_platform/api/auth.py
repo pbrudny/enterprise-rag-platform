@@ -21,15 +21,20 @@ from rag_platform.config import Settings
 class BasicAuthMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, settings: Settings) -> None:
         super().__init__(app)
-        self._user = settings.basic_auth_user
-        self._password = settings.basic_auth_password
-        self._enabled = bool(self._user and self._password)
+        # Keep the settings object itself, not a snapshot of its two fields
+        # at construction time — the shared FastAPI app is a module-level
+        # singleton built once, so reading fresh on every request is what
+        # lets tests override credentials via monkeypatch/dependency
+        # overrides without needing to reconstruct the app or middleware.
+        self._settings = settings
 
     async def dispatch(self, request: Request, call_next):
-        if not self._enabled:
+        user = self._settings.basic_auth_user
+        password = self._settings.basic_auth_password
+        if not (user and password):
             return await call_next(request)
 
-        if self._is_authorized(request):
+        if self._is_authorized(request, user, password):
             return await call_next(request)
 
         return Response(
@@ -37,16 +42,16 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
             headers={"WWW-Authenticate": 'Basic realm="rag-platform"'},
         )
 
-    def _is_authorized(self, request: Request) -> bool:
+    def _is_authorized(self, request: Request, user: str, password: str) -> bool:
         header = request.headers.get("authorization", "")
         if not header.lower().startswith("basic "):
             return False
         try:
             decoded = base64.b64decode(header[6:]).decode("utf-8")
-            user, _, password = decoded.partition(":")
+            req_user, _, req_password = decoded.partition(":")
         except (ValueError, binascii.Error, UnicodeDecodeError):
             return False
 
-        return secrets.compare_digest(user, self._user) and secrets.compare_digest(
-            password, self._password
+        return secrets.compare_digest(req_user, user) and secrets.compare_digest(
+            req_password, password
         )

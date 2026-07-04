@@ -60,8 +60,11 @@ def build_vector_store(settings: Settings) -> VectorStore:
             port=settings.chroma_port,
             ssl=settings.chroma_ssl,
             auth_token=settings.chroma_auth_token,
+            collection_name=settings.chroma_collection_name,
         )
-    return ChromaVectorStore(persist_dir=settings.chroma_dir)
+    return ChromaVectorStore(
+        persist_dir=settings.chroma_dir, collection_name=settings.chroma_collection_name
+    )
 
 
 def build_audit_logger(settings: Settings) -> AuditLogger:

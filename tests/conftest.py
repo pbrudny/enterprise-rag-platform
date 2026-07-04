@@ -127,11 +127,28 @@ def seeded_retriever(seeded_store: ChromaVectorStore) -> Retriever:
 
 
 @pytest.fixture
-def api_client(seeded_store: ChromaVectorStore, tenant_registry: TenantRegistry, tmp_path: Path):
+def api_client(
+    seeded_store: ChromaVectorStore,
+    tenant_registry: TenantRegistry,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
     """TestClient wired to fakes via dependency overrides, so API tests hit
-    the real HTTP boundary without touching real embedding/LLM APIs."""
+    the real HTTP boundary without touching real embedding/LLM APIs.
+
+    Also force-disables BasicAuthMiddleware regardless of whatever's in the
+    developer's real ~/agenty/secrets/.env — that file legitimately holds
+    real basic_auth_user/password for the *deployed* instance, and the
+    shared `app` singleton reads the same global `real_settings` object the
+    middleware was built with, so without this override, tests would start
+    failing with 401s the moment those secrets are configured for real
+    (this happened once already).
+    """
     from rag_platform.api import deps
     from rag_platform.api.app import app
+
+    monkeypatch.setattr(real_settings, "basic_auth_user", "")
+    monkeypatch.setattr(real_settings, "basic_auth_password", "")
 
     audit_logger = AuditLogger(audit_log_file=tmp_path / "api_audit.jsonl")
     retriever = Retriever(
