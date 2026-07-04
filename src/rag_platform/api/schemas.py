@@ -60,3 +60,11 @@ class AuditEvent(BaseModel):
     timestamp: str
     event_type: str
     details: dict = Field(default_factory=dict)
+
+
+class DocumentIngestResponse(BaseModel):
+    doc_id: str
+    title: str
+    tenant_id: str
+    acl_group: str
+    classification: str

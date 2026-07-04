@@ -6,8 +6,11 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
   }`;
 
+const INGEST_ROLES = new Set(["manager", "security_admin"]);
+
 export function NavBar() {
   const { selectedUser } = useUser();
+  const canIngest = !!selectedUser && INGEST_ROLES.has(selectedUser.role);
 
   return (
     <nav className="flex items-center justify-between border-b border-slate-200 px-6 py-3">
@@ -19,6 +22,11 @@ export function NavBar() {
         <NavLink to="/ask" className={linkClass}>
           Ask
         </NavLink>
+        {canIngest && (
+          <NavLink to="/documents" className={linkClass}>
+            Documents
+          </NavLink>
+        )}
         <NavLink to="/audit" className={linkClass}>
           Audit Log
         </NavLink>

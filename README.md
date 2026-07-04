@@ -23,9 +23,9 @@ uv run rag audit tail -n 20
 
 ## Web UI
 
-A FastAPI backend (`src/rag_platform/api/`) exposes the same core service layer over HTTP, and a React/TypeScript frontend (`frontend/`) provides a browser UI for the same flows as `rag demo`: pick a mock user, ask questions, see the access context/filter/retrieved chunks/injection scan/output validation/citations, and view the audit log.
+A FastAPI backend (`src/rag_platform/api/`) exposes the same core service layer over HTTP, and a React/TypeScript frontend (`frontend/`) provides a browser UI: pick a mock user, ask questions (access context/filter/retrieved chunks/injection scan/output validation/citations), ingest documents if you're a manager or security admin, view the architecture diagram, and view the audit log.
 
-**v1 scope, deliberately**: mock user picker (no real auth, plus an HTTP Basic Auth gate in front of the deployed instance specifically — see `src/rag_platform/api/auth.py` — since it triggers real billed LLM calls), ask/query screen, audit log viewer. Document ingestion stays CLI-only (`rag ingest`/`seed-demo`) — it needs admin ACL/classification decisions that are secondary to this build's retrieval/security story.
+**v1 scope, deliberately**: mock user picker (no real auth, plus an HTTP Basic Auth gate in front of the deployed instance specifically — see `src/rag_platform/api/auth.py` — since it triggers real billed LLM calls). Document ingestion (`/documents` page, `POST /api/documents`) is scoped to `manager`/`security_admin` roles, always attributed to the caller's own tenant (never client-supplied), and capped at the caller's own clearance/ACL membership — see `src/rag_platform/api/routers/documents.py`. `rag ingest`/`seed-demo` remain available from the CLI too, sharing the same `IngestionPipeline`.
 
 The backend also serves the built frontend as static files (same process, same-origin, no CORS) when `frontend/dist/` exists — see the `Dockerfile` at the repo root for the deployed build.
 

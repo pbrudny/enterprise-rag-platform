@@ -3,6 +3,7 @@ import { NavBar } from "./components/NavBar";
 import { ArchitecturePage } from "./pages/ArchitecturePage";
 import { AskPage } from "./pages/AskPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
+import { DocumentsPage } from "./pages/DocumentsPage";
 import { UserPickerPage } from "./pages/UserPickerPage";
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
       <Routes>
         <Route path="/" element={<UserPickerPage />} />
         <Route path="/ask" element={<AskPage />} />
+        <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/audit" element={<AuditLogPage />} />
         <Route path="/architecture" element={<ArchitecturePage />} />
       </Routes>

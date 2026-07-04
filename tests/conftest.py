@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 from rag_platform.config import settings as real_settings
 from rag_platform.generation.answer_service import AnswerService
 from rag_platform.ingestion.pipeline import IngestionPipeline
+from rag_platform.ingestion.quarantine import QuarantineStore
 from rag_platform.models.enums import Classification
 from rag_platform.models.query import AnswerPayload
 from rag_platform.providers.embeddings import EmbeddingProvider
@@ -161,10 +162,18 @@ def api_client(
         llm=FakeLLMProvider(answer="fake answer", citations=["acme-corp:vpn-password-policy::0"]),
         audit_logger=audit_logger,
     )
+    ingestion_pipeline = IngestionPipeline(
+        embedding_provider=FakeEmbeddingProvider(),
+        vector_store=seeded_store,
+        raw_store_dir=tmp_path / "raw_store",
+        quarantine_store=QuarantineStore(quarantine_dir=tmp_path / "quarantine"),
+        audit_logger=audit_logger,
+    )
 
     app.dependency_overrides[deps.get_answer_service] = lambda: answer_service
     app.dependency_overrides[deps.get_tenant_registry] = lambda: tenant_registry
     app.dependency_overrides[deps.get_audit_logger] = lambda: audit_logger
+    app.dependency_overrides[deps.get_ingestion_pipeline] = lambda: ingestion_pipeline
 
     with TestClient(app) as client:
         yield client
