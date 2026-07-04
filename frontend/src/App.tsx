@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { NavBar } from "./components/NavBar";
+import { ArchitecturePage } from "./pages/ArchitecturePage";
 import { AskPage } from "./pages/AskPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
 import { UserPickerPage } from "./pages/UserPickerPage";
@@ -12,6 +13,7 @@ function App() {
         <Route path="/" element={<UserPickerPage />} />
         <Route path="/ask" element={<AskPage />} />
         <Route path="/audit" element={<AuditLogPage />} />
+        <Route path="/architecture" element={<ArchitecturePage />} />
       </Routes>
     </div>
   );

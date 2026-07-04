@@ -22,6 +22,9 @@ export function NavBar() {
         <NavLink to="/audit" className={linkClass}>
           Audit Log
         </NavLink>
+        <NavLink to="/architecture" className={linkClass}>
+          Architecture
+        </NavLink>
       </div>
       <div className="text-sm text-slate-500">
         {selectedUser ? (
