@@ -54,3 +54,20 @@ def test_accepts_correct_credentials():
     response = client.get("/ping", headers=_basic_header("admin", "s3cret"))
     assert response.status_code == 200
     assert response.json() == {"ok": True}
+
+
+def test_env_var_names_actually_match_the_settings_fields(monkeypatch):
+    """Regression test: constructing Settings via kwargs (as the tests above
+    do) can't catch a mismatch between a field name and the env var name
+    pydantic-settings actually looks for — this bit us for real once (env
+    vars were named RAG_PLATFORM_BASIC_AUTH_USER/PASSWORD, but with no
+    env_prefix configured, the field `basic_auth_user` only ever matches
+    bare `BASIC_AUTH_USER`). This test goes through the real env-var path.
+    """
+    monkeypatch.setenv("BASIC_AUTH_USER", "admin")
+    monkeypatch.setenv("BASIC_AUTH_PASSWORD", "s3cret")
+
+    settings = Settings()
+
+    assert settings.basic_auth_user == "admin"
+    assert settings.basic_auth_password == "s3cret"

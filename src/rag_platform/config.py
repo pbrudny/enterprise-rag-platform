@@ -54,7 +54,10 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 5
 
     # HTTP Basic Auth gate for the API/frontend (src/rag_platform/api/auth.py).
-    # Empty (the default, i.e. local dev) disables the gate entirely.
+    # Empty (the default, i.e. local dev) disables the gate entirely. Env
+    # vars are BASIC_AUTH_USER / BASIC_AUTH_PASSWORD (bare, no prefix, like
+    # every other field here — pydantic-settings maps a field to its exact
+    # uppercased name, not a project-prefixed one).
     basic_auth_user: str = ""
     basic_auth_password: str = ""
 
